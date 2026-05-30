@@ -3,7 +3,6 @@ import subprocess
 import platform
 
 from datetime import datetime
-
 from database import salvar_evento
 
 estado_dispositivos = {}
@@ -47,13 +46,13 @@ def dentro_do_horario(config):
     return inicio <= agora <= fim
 
 
-def verificar_dispositivo(dispositivo, config):
+def verificar_dispositivo(dispositivo, config, whatsapp):
 
     nome = dispositivo["nome"]
     ip = dispositivo["ip"]
+    tipo = dispositivo.get("tipo", "desconhecido").upper()
 
     if ip not in estado_dispositivos:
-
         estado_dispositivos[ip] = {
             "falhas": 0,
             "offline": False,
@@ -64,29 +63,33 @@ def verificar_dispositivo(dispositivo, config):
 
     resposta = ping_host(ip)
 
+    # =========================
     # ONLINE
+    # =========================
     if resposta:
 
         print(f"[OK] {nome} ({ip})")
 
         if estado["offline"]:
 
-            tempo_offline = (
-                datetime.now() -
-                estado["offline_desde"]
+            tempo_offline = datetime.now() - estado["offline_desde"]
+
+            mensagem = (
+                f"✅ ONLINE [{tipo}]\n\n"
+                f"Cliente: {config['cliente']}\n"
+                f"Nome: {nome}\n"
+                f"IP: {ip}\n"
+                f"Tempo offline: {tempo_offline}"
             )
 
-            print(
-                f"\n✅ EQUIPAMENTO RECUPERADO"
-                f"\nNome: {nome}"
-                f"\nIP: {ip}"
-                f"\nTempo offline: {tempo_offline}\n"
-            )
+            print("\n" + mensagem + "\n")
 
-            salvar_evento(
-                nome,
-                ip,
-                "ONLINE"
+            salvar_evento(nome, ip, "ONLINE")
+
+            # WHATSAPP
+            whatsapp.enviar(
+                "+SEU_NUMERO",  # Substitua pelo número de destino
+                mensagem
             )
 
             estado["offline"] = False
@@ -94,7 +97,9 @@ def verificar_dispositivo(dispositivo, config):
 
         estado["falhas"] = 0
 
+    # =========================
     # OFFLINE
+    # =========================
     else:
 
         estado["falhas"] += 1
@@ -112,35 +117,31 @@ def verificar_dispositivo(dispositivo, config):
             estado["offline"] = True
             estado["offline_desde"] = datetime.now()
 
-            print(
-                f"\n🚨 EQUIPAMENTO OFFLINE"
-                f"\nNome: {nome}"
-                f"\nIP: {ip}"
-                f"\nDetectado: "
-                f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+            mensagem = (
+                f"🚨 OFFLINE [{tipo}]\n\n"
+                f"Cliente: {config['cliente']}\n"
+                f"Nome: {nome}\n"
+                f"IP: {ip}\n"
+                f"Detectado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
             )
 
-            salvar_evento(
-                nome,
-                ip,
-                "OFFLINE"
+            print("\n" + mensagem + "\n")
+
+            salvar_evento(nome, ip, "OFFLINE")
+
+            # WHATSAPP
+            whatsapp.enviar(
+                "+SEU_NUMERO",  # Substitua pelo número de destino
+                mensagem
             )
 
 
-def monitorar(config):
+def monitorar(config, whatsapp):
 
     print("\nIniciando monitoramento...")
-
     print(f"Cliente: {config['cliente']}")
-    print(
-        f"Monitorando "
-        f"{len(config['equipamentos'])} equipamentos"
-    )
-    print(
-        f"Intervalo: "
-        f"{config['intervalo_verificacao']} segundos"
-    )
-
+    print(f"Monitorando {len(config['equipamentos'])} equipamentos")
+    print(f"Intervalo: {config['intervalo_verificacao']} segundos")
     print("-" * 50)
 
     while True:
@@ -153,11 +154,7 @@ def monitorar(config):
             )
 
             for dispositivo in config["equipamentos"]:
-
-                verificar_dispositivo(
-                    dispositivo,
-                    config
-                )
+                verificar_dispositivo(dispositivo, config, whatsapp)
 
         else:
 
@@ -166,6 +163,4 @@ def monitorar(config):
                 f"Fora do horário de monitoramento"
             )
 
-        time.sleep(
-            config["intervalo_verificacao"]
-        )
+        time.sleep(config["intervalo_verificacao"])

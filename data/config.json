@@ -10,15 +10,18 @@
     "equipamentos": [
         {
             "nome": "Meu celular",
-            "ip": "192.168.2.7"
+            "ip": "192.168.2.7",
+            "tipo": "celular"
         },
         {
-            "nome": "Roteador",
-            "ip": "8.8.8.8"
+            "nome": "Roteador de casa",
+            "ip": "8.8.8.8",
+            "tipo": "Roteador"
         },
         {
             "nome": "Celular da Mirian",
-            "ip": "192.168.2.156"
+            "ip": "192.168.2.156",
+            "tipo": "celular"
         }
     ]
 }
