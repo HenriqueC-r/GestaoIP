@@ -1,37 +1,88 @@
 # 🚀 GestaoIP
 
-Sistema de monitoramento de dispositivos de rede desenvolvido em Python.
+Sistema de monitoramento inteligente de dispositivos de rede desenvolvido em Python.
 
-O GestaoIP monitora equipamentos através de seus endereços IP, detectando falhas, indisponibilidades e recuperações em tempo real. O objetivo é permitir que empresas sejam notificadas rapidamente quando dispositivos críticos, como impressoras, servidores, roteadores ou computadores, ficarem offline.
+O GestaoIP monitora equipamentos via IP em tempo real, detectando indisponibilidades e recuperações automaticamente. Ele é ideal para ambientes corporativos que precisam garantir disponibilidade de impressoras, servidores, roteadores e estações de trabalho, com envio de alertas em tempo real via WhatsApp.
 
 ---
 
-## ✨ Funcionalidades
+## 📡 Funcionalidades
 
-- Monitoramento de dispositivos por IP
-- Verificação periódica de disponibilidade
-- Detecção de falhas consecutivas
-- Detecção de recuperação automática
-- Registro de eventos em SQLite
-- Configuração simples via JSON
+- Monitoramento contínuo de dispositivos por IP
+- Detecção de queda de conexão (offline)
+- Detecção automática de recuperação (online)
+- Sistema de alertas em tempo real via WhatsApp
+- Registro de logs e histórico de monitoramento
+- Persistência de dados via SQLite
+- Configuração simples via arquivo JSON
 - Compatível com Linux e Windows
 
 ---
 
-## 📂 Estrutura do Projeto
+## ⚙️ Tecnologias utilizadas
 
-```text
+- Python 3
+- SQLite
+- JSON para configuração
+- Threads para monitoramento contínuo
+- API de WhatsApp (Twilio ou integração similar)
+
+---
+
+## 📁 Estrutura do projeto
+
 gestaoip/
-
-├── main.py
-├── monitor.py
-├── database.py
-├── config.py
+├── main.py              # Ponto de entrada do sistema
+├── monitor.py           # Lógica de monitoramento de IPs
+├── database.py          # Gerenciamento do banco SQLite
+├── config.py            # Configurações do sistema
+├── whatsapp.py          # Integração de alertas via WhatsApp
 
 ├── data/
-│   ├── config.json
-│   └── monitor.db
+│   ├── config.json      # Configuração dos dispositivos
+│   └── monitor.db       # Banco de dados SQLite
 
-├── logs/
+├── logs/                # Logs do sistema
+├── requirements.txt
+└── README.md
 
-└── requirements.txt
+---
+
+## 🚀 Como executar
+
+# clonar repositório
+git clone https://github.com/HenriqueC-r/GestaoIP.git
+
+# entrar na pasta
+cd GestaoIP
+
+# criar ambiente virtual
+python -m venv .venv
+
+# ativar ambiente virtual (Linux/Mac)
+source .venv/bin/activate
+
+# ativar ambiente virtual (Windows)
+.venv\Scripts\activate
+
+# instalar dependências
+pip install -r requirements.txt
+
+# executar sistema
+python main.py
+
+---
+
+## 📌 Próximas melhorias (roadmap)
+
+- [ ] Dashboard web (Flask ou FastAPI)
+- [ ] Interface gráfica
+- [ ] Multiusuário
+- [ ] Exportação de relatórios
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por Caio 🚀  
+Sistema em evolução contínua focado em automação e monitoramento de redes.
