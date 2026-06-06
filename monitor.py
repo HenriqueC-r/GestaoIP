@@ -1,11 +1,34 @@
 import time
 import subprocess
 import platform
+import logging
 
 from datetime import datetime
 from database import salvar_evento
+import telegram
 
 estado_dispositivos = {}
+
+
+def registrar(mensagem):
+    logging.info(mensagem)
+
+
+def separador():
+    registrar("=" * 56)
+
+
+def registrar_alerta(titulo, linhas):
+    registrar("")
+    registrar("!" * 56)
+    registrar(titulo)
+    registrar("-" * 56)
+
+    for rotulo, valor in linhas:
+        registrar(f"{rotulo:<14} {valor}")
+
+    registrar("!" * 56)
+    registrar("")
 
 
 def ping_host(ip):
@@ -34,19 +57,22 @@ def dentro_do_horario(config):
     agora = datetime.now().time()
 
     inicio = datetime.strptime(
-        config["horario_inicio"],
+        config["monitorar_inicio"],
         "%H:%M"
     ).time()
 
     fim = datetime.strptime(
-        config["horario_fim"],
+        config["monitorar_fim"],
         "%H:%M"
     ).time()
 
-    return inicio <= agora <= fim
+    if inicio <= fim:
+        return inicio <= agora <= fim
+
+    return agora >= inicio or agora <= fim
 
 
-def verificar_dispositivo(dispositivo, config, whatsapp):
+def verificar_dispositivo(dispositivo, config):
 
     nome = dispositivo["nome"]
     ip = dispositivo["ip"]
@@ -68,27 +94,35 @@ def verificar_dispositivo(dispositivo, config, whatsapp):
     # =========================
     if resposta:
 
-        print(f"[OK] {nome} ({ip})")
+        registrar(f"  [OK]     {nome} ({ip})")
 
         if estado["offline"]:
 
             tempo_offline = datetime.now() - estado["offline_desde"]
+            tempo_formatado = str(tempo_offline).split(".")[0]
 
             mensagem = (
                 f"✅ ONLINE [{tipo}]\n\n"
                 f"Cliente: {config['cliente']}\n"
                 f"Nome: {nome}\n"
                 f"IP: {ip}\n"
-                f"Tempo offline: {tempo_offline}"
+                f"Tempo offline: {tempo_formatado}"
             )
 
-            print("\n" + mensagem + "\n")
+            registrar_alerta(
+                f"✅ ONLINE [{tipo}]",
+                [
+                    ("Cliente:", config["cliente"]),
+                    ("Nome:", nome),
+                    ("IP:", ip),
+                    ("Offline por:", tempo_formatado),
+                ],
+            )
 
             salvar_evento(nome, ip, "ONLINE")
 
-            # WHATSAPP
-            whatsapp.enviar(
-                "+SEU_NUMERO",  # Substitua pelo número de destino
+            telegram.enviar(
+                config["telegram"]["chat_id"],
                 mensagem
             )
 
@@ -104,9 +138,10 @@ def verificar_dispositivo(dispositivo, config, whatsapp):
 
         estado["falhas"] += 1
 
-        print(
-            f"[FALHA {estado['falhas']}/{config['falhas_para_alerta']}] "
+        registrar(
+            f"  [FALHA]  "
             f"{nome} ({ip})"
+            f" - {estado['falhas']}/{config['falhas_para_alerta']}"
         )
 
         if (
@@ -116,51 +151,69 @@ def verificar_dispositivo(dispositivo, config, whatsapp):
 
             estado["offline"] = True
             estado["offline_desde"] = datetime.now()
+            detectado = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
 
             mensagem = (
                 f"🚨 OFFLINE [{tipo}]\n\n"
                 f"Cliente: {config['cliente']}\n"
                 f"Nome: {nome}\n"
                 f"IP: {ip}\n"
-                f"Detectado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+                f"Detectado: {detectado}"
             )
 
-            print("\n" + mensagem + "\n")
+            registrar_alerta(
+                f"🚨 OFFLINE [{tipo}]",
+                [
+                    ("Cliente:", config["cliente"]),
+                    ("Nome:", nome),
+                    ("IP:", ip),
+                    ("Detectado:", detectado),
+                ],
+            )
 
             salvar_evento(nome, ip, "OFFLINE")
 
-            # WHATSAPP
-            whatsapp.enviar(
-                "+SEU_NUMERO",  # Substitua pelo número de destino
+            telegram.enviar(
+                config["telegram"]["chat_id"],
                 mensagem
             )
 
 
-def monitorar(config, whatsapp):
+def monitorar(config):
 
-    print("\nIniciando monitoramento...")
-    print(f"Cliente: {config['cliente']}")
-    print(f"Monitorando {len(config['equipamentos'])} equipamentos")
-    print(f"Intervalo: {config['intervalo_verificacao']} segundos")
-    print("-" * 50)
+    registrar("")
+    separador()
+    registrar("GestaoIP - Monitoramento iniciado")
+    separador()
+    registrar(f"Cliente:       {config['cliente']}")
+    registrar(f"Equipamentos:  {len(config['equipamentos'])}")
+    registrar(f"Intervalo:     {config['intervalo_verificacao']} segundos")
+    registrar(f"Alertar após:  {config['falhas_para_alerta']} falhas seguidas")
+    registrar("")
 
     while True:
 
         if dentro_do_horario(config):
 
-            print(
-                f"\n[{datetime.now().strftime('%H:%M:%S')}] "
-                f"Verificando equipamentos..."
+            separador()
+            registrar(
+                f"Verificação iniciada às "
+                f"{datetime.now().strftime('%H:%M:%S')}"
             )
+            registrar("-" * 56)
 
             for dispositivo in config["equipamentos"]:
-                verificar_dispositivo(dispositivo, config, whatsapp)
+                verificar_dispositivo(dispositivo, config)
+
+            registrar("")
 
         else:
 
-            print(
-                f"\n[{datetime.now().strftime('%H:%M:%S')}] "
+            separador()
+            registrar(
+                f"{datetime.now().strftime('%H:%M:%S')} - "
                 f"Fora do horário de monitoramento"
             )
+            registrar("")
 
         time.sleep(config["intervalo_verificacao"])

@@ -1,8 +1,10 @@
 import sqlite3
+from paths import DATA_DIR, DB_PATH
 
 
 def criar_banco():
-    conn = sqlite3.connect("data/monitor.db")
+    DATA_DIR.mkdir(exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
 
     cursor = conn.cursor()
 
@@ -21,7 +23,8 @@ def criar_banco():
 
 
 def salvar_evento(equipamento, ip, status):
-    conn = sqlite3.connect("data/monitor.db")
+    DATA_DIR.mkdir(exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
 
     cursor = conn.cursor()
 
