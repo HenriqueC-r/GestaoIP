@@ -2,9 +2,6 @@
 __pycache__/
 *.pyc
 
-data/monitor.db
-data/config.json
-data/telegram_config.json
 
 logs/
 .vscode/
