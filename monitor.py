@@ -2,12 +2,14 @@ import time
 import subprocess
 import platform
 import logging
+import threading
 
 from datetime import datetime
 from database import salvar_evento
 import telegram
 
 estado_dispositivos = {}
+_stop_event = threading.Event()
 
 
 def registrar(mensagem):
@@ -32,7 +34,6 @@ def registrar_alerta(titulo, linhas):
 
 
 def ping_host(ip):
-
     sistema = platform.system().lower()
 
     if sistema == "windows":
@@ -50,21 +51,13 @@ def ping_host(ip):
 
 
 def dentro_do_horario(config):
-
     if config.get("monitorar_24h", False):
         return True
 
     agora = datetime.now().time()
 
-    inicio = datetime.strptime(
-        config["monitorar_inicio"],
-        "%H:%M"
-    ).time()
-
-    fim = datetime.strptime(
-        config["monitorar_fim"],
-        "%H:%M"
-    ).time()
+    inicio = datetime.strptime(config["monitorar_inicio"], "%H:%M").time()
+    fim = datetime.strptime(config["monitorar_fim"], "%H:%M").time()
 
     if inicio <= fim:
         return inicio <= agora <= fim
@@ -72,8 +65,7 @@ def dentro_do_horario(config):
     return agora >= inicio or agora <= fim
 
 
-def verificar_dispositivo(dispositivo, config):
-
+def verificar_dispositivo(dispositivo, config, callback=None):
     nome = dispositivo["nome"]
     ip = dispositivo["ip"]
     tipo = dispositivo.get("tipo", "desconhecido").upper()
@@ -86,18 +78,15 @@ def verificar_dispositivo(dispositivo, config):
         }
 
     estado = estado_dispositivos[ip]
-
     resposta = ping_host(ip)
 
     # =========================
     # ONLINE
     # =========================
     if resposta:
-
         registrar(f"  [OK]     {nome} ({ip})")
 
         if estado["offline"]:
-
             tempo_offline = datetime.now() - estado["offline_desde"]
             tempo_formatado = str(tempo_offline).split(".")[0]
 
@@ -121,13 +110,17 @@ def verificar_dispositivo(dispositivo, config):
 
             salvar_evento(nome, ip, "ONLINE")
 
-            telegram.enviar(
-                config["telegram"]["chat_id"],
-                mensagem
-            )
+            telegram_ok = telegram.enviar(config["telegram"]["chat_id"], mensagem)
+
+            if callback:
+                callback(nome, ip, "ONLINE", telegram_ok)
 
             estado["offline"] = False
             estado["offline_desde"] = None
+
+        else:
+            if callback:
+                callback(nome, ip, "ONLINE", False)
 
         estado["falhas"] = 0
 
@@ -135,12 +128,10 @@ def verificar_dispositivo(dispositivo, config):
     # OFFLINE
     # =========================
     else:
-
         estado["falhas"] += 1
 
         registrar(
-            f"  [FALHA]  "
-            f"{nome} ({ip})"
+            f"  [FALHA]  {nome} ({ip})"
             f" - {estado['falhas']}/{config['falhas_para_alerta']}"
         )
 
@@ -148,7 +139,6 @@ def verificar_dispositivo(dispositivo, config):
             estado["falhas"] >= config["falhas_para_alerta"]
             and not estado["offline"]
         ):
-
             estado["offline"] = True
             estado["offline_desde"] = datetime.now()
             detectado = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -173,13 +163,26 @@ def verificar_dispositivo(dispositivo, config):
 
             salvar_evento(nome, ip, "OFFLINE")
 
-            telegram.enviar(
-                config["telegram"]["chat_id"],
-                mensagem
-            )
+            telegram_ok = telegram.enviar(config["telegram"]["chat_id"], mensagem)
+
+            if callback:
+                callback(nome, ip, "OFFLINE", telegram_ok)
+
+        elif estado["offline"]:
+            if callback:
+                callback(nome, ip, "OFFLINE", False)
+
+        else:
+            if callback:
+                callback(nome, ip, "AGUARDANDO", False)
 
 
-def monitorar(config):
+def parar():
+    _stop_event.set()
+
+
+def monitorar(config, callback=None):
+    _stop_event.clear()
 
     registrar("")
     separador()
@@ -191,10 +194,8 @@ def monitorar(config):
     registrar(f"Alertar após:  {config['falhas_para_alerta']} falhas seguidas")
     registrar("")
 
-    while True:
-
+    while not _stop_event.is_set():
         if dentro_do_horario(config):
-
             separador()
             registrar(
                 f"Verificação iniciada às "
@@ -203,12 +204,11 @@ def monitorar(config):
             registrar("-" * 56)
 
             for dispositivo in config["equipamentos"]:
-                verificar_dispositivo(dispositivo, config)
+                verificar_dispositivo(dispositivo, config, callback)
 
             registrar("")
 
         else:
-
             separador()
             registrar(
                 f"{datetime.now().strftime('%H:%M:%S')} - "
@@ -216,4 +216,4 @@ def monitorar(config):
             )
             registrar("")
 
-        time.sleep(config["intervalo_verificacao"])
+        _stop_event.wait(timeout=config["intervalo_verificacao"])

@@ -1,9 +1,9 @@
+import sys
 import json
 import logging
 
-from database import criar_banco
 from logger_setup import configurar_logs
-from monitor import monitorar
+from database import criar_banco
 from paths import CONFIG_PATH
 
 
@@ -47,7 +47,9 @@ def validar_config(config):
             )
 
 
-def main():
+def modo_terminal():
+    from monitor import monitorar
+
     configurar_logs()
 
     try:
@@ -62,5 +64,13 @@ def main():
         logging.info("Monitoramento encerrado pelo usuário.")
 
 
+def modo_ui():
+    from ui import iniciar
+    iniciar()
+
+
 if __name__ == "__main__":
-    main()
+    if "--terminal" in sys.argv:
+        modo_terminal()
+    else:
+        modo_ui()
