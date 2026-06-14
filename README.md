@@ -4,6 +4,9 @@ Sistema simples de monitoramento de dispositivos de rede por IP, com alertas via
 
 O GestaoIP verifica periodicamente uma lista de equipamentos, detecta falhas consecutivas, registra eventos de queda/retorno e envia alertas para um chat ou grupo do Telegram.
 
+<img width="554" height="669" alt="image" src="https://github.com/user-attachments/assets/92a74ca4-2def-443b-b547-cb61a2b02d1e" />
+
+
 ## Funcionalidades
 
 - Monitoramento por `ping`
@@ -25,15 +28,14 @@ gestaoip/
 ├── database.py
 ├── telegram.py
 ├── paths.py
+├── ui.py
 ├── logger_setup.py
 ├── requirements.txt
 ├── data/
-│   ├── config.example.json
-│   └── telegram_config.example.json
+│   ├── config.json
+│   └── telegram_config.json
 └── logs/
 ```
-
-Os arquivos reais `data/config.json`, `data/telegram_config.json`, `data/monitor.db` e `logs/` ficam fora do git.
 
 ## Instalação
 
@@ -45,8 +47,9 @@ python -m venv .venv
 No Windows:
 
 ```bat
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
+pip install -r requirements.txt
+pip install pyinstaller
+pyinstaller --onefile --windowed --name GestaoIP --collect-all customtkinter main.py
 ```
 
 ## Configuração
@@ -188,13 +191,6 @@ Não publique os arquivos reais abaixo:
 - `logs/`
 
 O token do Telegram permite controlar o bot. Se ele vazar, gere um novo token no BotFather.
-
-## Roadmap
-
-- Dashboard web
-- Interface gráfica
-- Exportação de relatórios
-- Instalação como serviço no Windows
 
 ## Autor
 
