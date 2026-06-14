@@ -1,0 +1,34 @@
+{
+    "cliente": "Casa",
+
+    "telegram": {
+        "chat_id": "Id_do_Grupo_Com_o_Bot"
+    },
+
+    "monitorar_24h": true,
+
+    "monitorar_inicio": "07:00",
+    "monitorar_fim": "17:00",
+
+    "intervalo_verificacao": 3,
+
+    "falhas_para_alerta": 2,
+
+    "equipamentos": [
+        {
+            "nome": "impressora",
+            "ip": "192.168.2.7",
+            "tipo": "celular"
+        },
+        {
+            "nome": "Roteador de casa",
+            "ip": "8.8.8.8",
+            "tipo": "Roteador"
+        },
+        {
+            "nome": "Computador",
+            "ip": "192.168.2.156",
+            "tipo": "celular"
+        }
+    ]
+}
