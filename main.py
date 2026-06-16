@@ -66,7 +66,10 @@ def modo_terminal():
 
 def modo_ui():
     from ui import iniciar
-    iniciar()
+    try:
+        iniciar()
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":

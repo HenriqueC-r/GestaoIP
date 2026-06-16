@@ -87,16 +87,9 @@ def verificar_dispositivo(dispositivo, config, callback=None):
         registrar(f"  [OK]     {nome} ({ip})")
 
         if estado["offline"]:
-            tempo_offline = datetime.now() - estado["offline_desde"]
+            voltou_em = datetime.now()
+            tempo_offline = voltou_em - estado["offline_desde"]
             tempo_formatado = str(tempo_offline).split(".")[0]
-
-            mensagem = (
-                f"✅ ONLINE [{tipo}]\n\n"
-                f"Cliente: {config['cliente']}\n"
-                f"Nome: {nome}\n"
-                f"IP: {ip}\n"
-                f"Tempo offline: {tempo_formatado}"
-            )
 
             registrar_alerta(
                 f"✅ ONLINE [{tipo}]",
@@ -110,7 +103,14 @@ def verificar_dispositivo(dispositivo, config, callback=None):
 
             salvar_evento(nome, ip, "ONLINE")
 
-            telegram_ok = telegram.enviar(config["telegram"]["chat_id"], mensagem)
+            telegram_ok = telegram.enviar_online(
+                config["telegram"]["chat_id"],
+                nome,
+                ip,
+                dispositivo.get("tipo", ""),
+                estado["offline_desde"],
+                voltou_em,
+            )
 
             if callback:
                 callback(nome, ip, "ONLINE", telegram_ok)
@@ -141,15 +141,6 @@ def verificar_dispositivo(dispositivo, config, callback=None):
         ):
             estado["offline"] = True
             estado["offline_desde"] = datetime.now()
-            detectado = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-
-            mensagem = (
-                f"🚨 OFFLINE [{tipo}]\n\n"
-                f"Cliente: {config['cliente']}\n"
-                f"Nome: {nome}\n"
-                f"IP: {ip}\n"
-                f"Detectado: {detectado}"
-            )
 
             registrar_alerta(
                 f"🚨 OFFLINE [{tipo}]",
@@ -157,13 +148,19 @@ def verificar_dispositivo(dispositivo, config, callback=None):
                     ("Cliente:", config["cliente"]),
                     ("Nome:", nome),
                     ("IP:", ip),
-                    ("Detectado:", detectado),
+                    ("Detectado:", estado["offline_desde"].strftime('%d/%m/%Y %H:%M:%S')),
                 ],
             )
 
             salvar_evento(nome, ip, "OFFLINE")
 
-            telegram_ok = telegram.enviar(config["telegram"]["chat_id"], mensagem)
+            telegram_ok = telegram.enviar_offline(
+                config["telegram"]["chat_id"],
+                nome,
+                ip,
+                dispositivo.get("tipo", ""),
+                estado["offline_desde"],
+            )
 
             if callback:
                 callback(nome, ip, "OFFLINE", telegram_ok)
@@ -194,6 +191,13 @@ def monitorar(config, callback=None):
     registrar(f"Alertar após:  {config['falhas_para_alerta']} falhas seguidas")
     registrar("")
 
+    telegram.enviar_monitoramento_iniciado(
+        config["telegram"]["chat_id"],
+        len(config["equipamentos"]),
+    )
+
+    inicio = datetime.now()
+
     while not _stop_event.is_set():
         if dentro_do_horario(config):
             separador()
@@ -217,3 +221,5 @@ def monitorar(config, callback=None):
             registrar("")
 
         _stop_event.wait(timeout=config["intervalo_verificacao"])
+
+    telegram.enviar_monitoramento_encerrado(config["telegram"]["chat_id"], inicio)

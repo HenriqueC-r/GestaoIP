@@ -1,4 +1,5 @@
 import queue
+import signal
 import threading
 import json
 import logging
@@ -156,6 +157,7 @@ class App(ctk.CTk):
         self._iniciar_monitoramento()
         self.after(300, self._processar_fila)
         self.protocol("WM_DELETE_WINDOW", self._ao_fechar)
+        signal.signal(signal.SIGINT, lambda *_: self._ao_fechar())
 
     def _construir_ui(self):
         try:
@@ -196,6 +198,8 @@ class App(ctk.CTk):
             self, fg_color="transparent", scrollbar_button_color=COR_BORDA
         )
         self.scroll.pack(fill="both", expand=True, padx=20)
+        self.scroll.bind_all("<Button-4>", lambda e: self.scroll._parent_canvas.yview_scroll(-1, "units"))
+        self.scroll.bind_all("<Button-5>", lambda e: self.scroll._parent_canvas.yview_scroll(1, "units"))
 
         equipamentos = self._config.get("equipamentos", [])
         self.lbl_total.configure(text=str(len(equipamentos)))
@@ -244,7 +248,6 @@ class App(ctk.CTk):
         self._thread = threading.Thread(
             target=monitorar,
             args=(self._config, callback),
-            daemon=True
         )
         self._thread.start()
 
@@ -278,6 +281,8 @@ class App(ctk.CTk):
 
     def _ao_fechar(self):
         parar()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5)
         self.destroy()
 
 

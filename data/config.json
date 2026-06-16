@@ -2,7 +2,7 @@
     "cliente": "Casa",
 
     "telegram": {
-        "chat_id": "Id_do_Grupo_Com_o_Bot"
+        "chat_id": "ID_DO_GRUPO"
     },
 
     "monitorar_24h": true,
@@ -16,7 +16,7 @@
 
     "equipamentos": [
         {
-            "nome": "impressora",
+            "nome": "Celular Caio",
             "ip": "192.168.2.7",
             "tipo": "celular"
         },
@@ -26,9 +26,14 @@
             "tipo": "Roteador"
         },
         {
-            "nome": "Computador",
+            "nome": "Celular Mirian",
             "ip": "192.168.2.156",
             "tipo": "celular"
+        },
+        {
+            "nome": "Notebook Mirian",
+            "ip": "192.168.2.1",
+            "tipo": "notebook"
         }
     ]
 }
