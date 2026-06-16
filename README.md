@@ -13,7 +13,6 @@ O GestãoIP verifica periodicamente uma lista de equipamentos, detecta falhas co
 - Emojis automáticos por tipo de equipamento (impressora, switch, câmera, DVR, roteador, etc.)
 - Exibe horário da queda, horário do retorno e tempo total offline
 - Notificação de monitoramento iniciado e encerrado (com tempo ativo)
-- Scroll com mouse na interface gráfica
 - Um grupo do Telegram por cliente — nome do cliente não aparece nas mensagens
 - Registro de eventos em SQLite
 - Configuração por arquivos JSON
@@ -35,9 +34,7 @@ gestaoip/
 ├── requirements.txt
 ├── data/
 │   ├── config.json
-│   ├── config.example.json
 │   ├── telegram_config.json
-│   └── telegram_config.example.json
 └── logs/
 ```
 
@@ -122,7 +119,7 @@ Campos principais:
 | `switch`       | 🔀    | SWITCH         |
 | `access point` | 📶    | ACCESS POINT   |
 | `impressora`   | 🖨    | IMPRESSORA     |
-| `servidor`     | 🖥    | SERVIDOR       |
+| `servidor`     | 🖥     | SERVIDOR       |
 | `nas`          | 💾    | NAS            |
 | `camera`       | 📷    | CÂMERA         |
 | `dvr`          | 📹    | DVR            |
