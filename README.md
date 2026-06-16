@@ -1,18 +1,20 @@
-# GestaoIP
+# GestãoIP
 
-Sistema simples de monitoramento de dispositivos de rede por IP, com alertas via Telegram e registro de eventos em SQLite.
+Sistema de monitoramento de dispositivos de rede por IP, com alertas profissionais via Telegram e registro de eventos em SQLite.
 
-O GestaoIP verifica periodicamente uma lista de equipamentos, detecta falhas consecutivas, registra eventos de queda/retorno e envia alertas para um chat ou grupo do Telegram.
+O GestãoIP verifica periodicamente uma lista de equipamentos, detecta falhas consecutivas, registra eventos de queda/retorno e envia alertas formatados para um grupo do Telegram por cliente.
 
 <img width="554" height="669" alt="image" src="https://github.com/user-attachments/assets/92a74ca4-2def-443b-b547-cb61a2b02d1e" />
-
 
 ## Funcionalidades
 
 - Monitoramento por `ping`
-- Alertas de equipamento offline
-- Alertas de retorno online
-- Envio de mensagens para grupo do Telegram
+- Alertas de equipamento offline e retorno online com formatação HTML
+- Emojis automáticos por tipo de equipamento (impressora, switch, câmera, DVR, roteador, etc.)
+- Exibe horário da queda, horário do retorno e tempo total offline
+- Notificação de monitoramento iniciado e encerrado (com tempo ativo)
+- Scroll com mouse na interface gráfica
+- Um grupo do Telegram por cliente — nome do cliente não aparece nas mensagens
 - Registro de eventos em SQLite
 - Configuração por arquivos JSON
 - Logs em `logs/gestaoip.log`
@@ -33,7 +35,9 @@ gestaoip/
 ├── requirements.txt
 ├── data/
 │   ├── config.json
-│   └── telegram_config.json
+│   ├── config.example.json
+│   ├── telegram_config.json
+│   └── telegram_config.example.json
 └── logs/
 ```
 
@@ -47,9 +51,8 @@ python -m venv .venv
 No Windows:
 
 ```bat
-pip install -r requirements.txt
-pip install pyinstaller
-pyinstaller --onefile --windowed --name GestaoIP --collect-all customtkinter main.py
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
 ```
 
 ## Configuração
@@ -61,7 +64,7 @@ cp data/config.example.json data/config.json
 cp data/telegram_config.example.json data/telegram_config.json
 ```
 
-No Windows, você pode copiar os arquivos manualmente pelo Explorer.
+No Windows, copie os arquivos manualmente pelo Explorer.
 
 ### `data/telegram_config.json`
 
@@ -71,7 +74,7 @@ No Windows, você pode copiar os arquivos manualmente pelo Explorer.
 }
 ```
 
-O token é gerado no BotFather do Telegram.
+O token é gerado no BotFather do Telegram. O mesmo token é usado para todos os clientes.
 
 ### `data/config.json`
 
@@ -91,6 +94,11 @@ O token é gerado no BotFather do Telegram.
             "nome": "Roteador principal",
             "ip": "192.168.0.1",
             "tipo": "roteador"
+        },
+        {
+            "nome": "Impressora RH",
+            "ip": "192.168.0.50",
+            "tipo": "impressora"
         }
     ]
 }
@@ -98,30 +106,51 @@ O token é gerado no BotFather do Telegram.
 
 Campos principais:
 
-- `cliente`: nome do cliente que aparece nas mensagens.
-- `telegram.chat_id`: ID do chat ou grupo que recebera os alertas.
+- `cliente`: nome do cliente (usado nos logs internos).
+- `telegram.chat_id`: ID do grupo do Telegram do cliente.
 - `monitorar_24h`: `true` para monitorar o dia inteiro.
 - `monitorar_inicio` e `monitorar_fim`: usados quando `monitorar_24h` for `false`.
 - `intervalo_verificacao`: tempo em segundos entre verificações.
-- `falhas_para_alerta`: quantidade de falhas seguidas antes de enviar alerta.
+- `falhas_para_alerta`: quantidade de falhas consecutivas antes de enviar alerta.
 - `equipamentos`: lista de dispositivos monitorados.
 
-## Telegram
+### Tipos de equipamento suportados
 
-Para enviar alertas a um grupo:
+| Tipo no JSON   | Emoji | Label          |
+|----------------|-------|----------------|
+| `roteador`     | 📡    | ROTEADOR       |
+| `switch`       | 🔀    | SWITCH         |
+| `access point` | 📶    | ACCESS POINT   |
+| `impressora`   | 🖨    | IMPRESSORA     |
+| `servidor`     | 🖥    | SERVIDOR       |
+| `nas`          | 💾    | NAS            |
+| `camera`       | 📷    | CÂMERA         |
+| `dvr`          | 📹    | DVR            |
+| `nvr`          | 📹    | NVR            |
+| `computador`   | 💻    | COMPUTADOR     |
+| `notebook`     | 💻    | NOTEBOOK       |
+| `celular`      | 📱    | CELULAR        |
+| `telefone`     | 📞    | TELEFONE       |
+| `voip`         | 📞    | TELEFONE VOIP  |
 
-1. Crie o bot no BotFather.
+Qualquer outro valor usa 🔌 DISPOSITIVO como padrão.
+
+## Configuração do Telegram
+
+Para enviar alertas a um grupo por cliente:
+
+1. Crie o bot no BotFather e salve o token.
 2. Coloque o token em `data/telegram_config.json`.
-3. Adicione o bot no grupo.
-4. Desative a privacidade do bot no BotFather usando `/setprivacy` e escolhendo `Disable`.
-5. Envie uma mensagem no grupo.
-6. Acesse:
+3. Crie um grupo no Telegram para o cliente e adicione o bot.
+4. Desative a privacidade do bot no BotFather com `/setprivacy` → `Disable`.
+5. Envie uma mensagem qualquer no grupo.
+6. Acesse a URL abaixo para obter o `chat_id`:
 
-```text
+```
 https://api.telegram.org/botSEU_TOKEN/getUpdates
 ```
 
-Procure o campo `chat.id` do grupo. Normalmente ele é negativo, por exemplo:
+Procure o campo `chat.id` do grupo. Normalmente é negativo:
 
 ```json
 "chat": {
@@ -145,52 +174,46 @@ No Windows:
 .venv\Scripts\python main.py
 ```
 
-O monitoramento roda em loop até ser encerrado manualmente.
-
-## Gerar executável com PyInstaller
-
-Instale o PyInstaller no ambiente:
+Para rodar sem interface gráfica (modo terminal):
 
 ```bash
-.venv/bin/pip install pyinstaller
+.venv/bin/python main.py --terminal
 ```
 
-Gere o executável:
+## Gerar executável para Windows
 
-```bash
-.venv/bin/pyinstaller --onefile --name GestaoIP main.py
-```
-
-No Windows:
+O executável deve ser gerado em uma máquina Windows.
 
 ```bat
 .venv\Scripts\pip install pyinstaller
-.venv\Scripts\pyinstaller --onefile --name GestaoIP main.py
+.venv\Scripts\pyinstaller --onefile --windowed --name GestaoIP --collect-all customtkinter main.py
 ```
 
-Depois de gerar, monte a pasta do cliente assim:
+O `.exe` gerado fica em `dist\GestaoIP.exe`.
+
+Monte a pasta do cliente assim:
 
 ```text
-GestaoIP/
+GestaoIP\
 ├── GestaoIP.exe
-├── data/
+├── data\
 │   ├── config.json
 │   └── telegram_config.json
-└── logs/
+└── logs\
 ```
 
 O executável procura `data/config.json` e `data/telegram_config.json` na mesma pasta onde ele estiver.
 
 ## Segurança
 
-Não publique os arquivos reais abaixo:
+Nunca publique os arquivos abaixo — estão no `.gitignore`:
 
 - `data/config.json`
 - `data/telegram_config.json`
 - `data/monitor.db`
 - `logs/`
 
-O token do Telegram permite controlar o bot. Se ele vazar, gere um novo token no BotFather.
+O token do Telegram permite controlar o bot. Se vazar, gere um novo no BotFather.
 
 ## Autor
 
